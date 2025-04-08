@@ -1,52 +1,51 @@
 # app/services/order_monitor.py
-
-import threading
-import time
 from datetime import datetime
-from binance.client import Client
-from dotenv import load_dotenv
-import os
-from app.domain.order import Order, OrderStatus
+from app.domain.order import OrderStatus
+from app.infrastructure.market_data_provider import MarketDataProvider
+from app.infrastructure.repositories.decision_log_repository import DecisionLogRepository
 
-load_dotenv()
 
 class OrderMonitor:
+
     def __init__(self):
-        self.client = Client(os.getenv("BINANCE_API_KEY"), os.getenv("BINANCE_SECRET_KEY"))
+        self.market_data_provider = MarketDataProvider()
+        self.logger = DecisionLogRepository()
 
-    def monitor(self, order: Order, interval: int = 10):
-        def run():
-            print(f"🕒 Iniciando monitoreo de orden: {order.order_type.name} {order.symbol}...")
-            while order.status == OrderStatus.OPEN:
-                ticker = self.client.get_symbol_ticker(symbol=order.symbol)
-                current_price = float(ticker['price'])
-                print(f"📡 Precio actual: {current_price} | TP: {order.take_profit:.2f} | SL: {order.stop_loss:.2f}")
+    def monitor(self, order):
+        if order.status != OrderStatus.OPEN:
+            return
 
-                if order.order_type.name == "BUY":
-                    if current_price >= order.take_profit:
-                        print("🎯 ¡Take Profit alcanzado! Cerrando orden.")
-                        order.status = OrderStatus.CLOSED
-                        order.closed_at = datetime.now()
-                        break
-                    elif current_price <= order.stop_loss:
-                        print("🛑 ¡Stop Loss alcanzado! Cerrando orden.")
-                        order.status = OrderStatus.CLOSED
-                        order.closed_at = datetime.now()
-                        break
-                else:  # SELL
-                    if current_price <= order.take_profit:
-                        print("🎯 ¡Take Profit alcanzado (venta)! Cerrando orden.")
-                        order.status = OrderStatus.CLOSED
-                        order.closed_at = datetime.now()
-                        break
-                    elif current_price >= order.stop_loss:
-                        print("🛑 ¡Stop Loss alcanzado (venta)! Cerrando orden.")
-                        order.status = OrderStatus.CLOSED
-                        order.closed_at = datetime.now()
-                        break
+        print(f"🕒 Monitoreando orden: {order.order_type.name} {order.symbol}")
 
-                time.sleep(interval)
+        current_price = self.market_data_provider.get_current_price(order.symbol)
+        print(f"📡 Precio actual: {current_price} | TP: {order.take_profit} | SL: {order.stop_loss}")
 
-        thread = threading.Thread(target=run)
-        thread.start()
-        return thread
+        # Lógica de monitoreo
+        if order.order_type.name == "BUY":
+            if current_price >= order.take_profit:
+                print("🎯 ¡Take Profit alcanzado (compra)! Cerrando orden.")
+                order.status = OrderStatus.CLOSED
+            elif current_price <= order.stop_loss:
+                print("🛑 ¡Stop Loss alcanzado (compra)! Cerrando orden.")
+                order.status = OrderStatus.CLOSED
+
+        elif order.order_type.name == "SELL":
+            if current_price <= order.take_profit:
+                print("🎯 ¡Take Profit alcanzado (venta)! Cerrando orden.")
+                order.status = OrderStatus.CLOSED
+            elif current_price >= order.stop_loss:
+                print("🛑 ¡Stop Loss alcanzado (venta)! Cerrando orden.")
+                order.status = OrderStatus.CLOSED
+
+        # Si se cerró, loguear
+        if order.status == OrderStatus.CLOSED:
+            order.closed_at = datetime.now()
+            print(f"✅ Orden cerrada. Esperando próximo análisis.")
+            self.logger.log_decision(
+                symbol=order.symbol,
+                decision_type="Order_Closed",
+                signal=order.order_type.name,
+                confidence=0.0,
+                reason="TP/SL alcanzado",
+                validated_by="OrderMonitor"
+            )

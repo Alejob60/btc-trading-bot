@@ -26,3 +26,18 @@ class MarketDataProvider:
             volume=float(k[5]),
             close_time=datetime.fromtimestamp(k[6] / 1000.0)
         )
+    def get_recent_candles(self, symbol="BTCUSDT", limit=20, interval="15m"):
+        try:
+            raw_data = self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
+            candles = []
+            for entry in raw_data:
+                candles.append({
+                    "open": float(entry[1]),
+                    "high": float(entry[2]),
+                    "low": float(entry[3]),
+                    "close": float(entry[4])
+                })
+            return candles
+        except Exception as e:
+            print(f"⚠️ Error al obtener velas recientes: {e}")
+            return []

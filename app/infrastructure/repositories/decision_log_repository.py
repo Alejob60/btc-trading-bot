@@ -20,3 +20,13 @@ class DecisionLogRepository:
         )
         with open(self.log_file_path, "a", encoding="utf-8") as log_file:
             log_file.write(log_entry)
+    
+    def log_order(self, order, source="unknown"):
+        from datetime import datetime
+        path = "logs/decision_log.log"
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+        with open(path, "a", encoding="utf-8") as log:
+            log.write(
+                f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] decision_type=Order_Executed, symbol={order.symbol}, action={order.order_type.value}, price={order.entry_price}, tp={order.take_profit}, sl={order.stop_loss}, source={source}\n"
+        )

@@ -1,0 +1,7 @@
+python-binance
+pandas
+python-dotenv
+ta
+numpy
+schedule
+requests

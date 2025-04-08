@@ -1,0 +1,15 @@
+# Entorno virtual
+env/
+.venv/
+
+# Archivos temporales y del sistema
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# Configuración de VSCode
+.vscode/
+
+# Archivos de entorno
+.env

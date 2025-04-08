@@ -1,0 +1,22 @@
+# app/infrastructure/repositories/decision_log_repository.py
+import os
+from datetime import datetime
+
+class DecisionLogRepository:
+    def __init__(self, log_file_path: str = "logs/decision_log.log"):
+        self.log_file_path = log_file_path
+        os.makedirs(os.path.dirname(self.log_file_path), exist_ok=True)
+
+    def log_decision(self, symbol: str, decision_type: str, signal: str, confidence: float, reason: str, validated_by: str = "None"):
+        timestamp = datetime.now().isoformat()
+        log_entry = (
+            f"[{timestamp}] "
+            f"SYMBOL: {symbol} | "
+            f"TYPE: {decision_type} | "
+            f"SIGNAL: {signal} | "
+            f"CONFIDENCE: {confidence:.2f} | "
+            f"REASON: {reason} | "
+            f"VALIDATED_BY: {validated_by}\n"
+        )
+        with open(self.log_file_path, "a", encoding="utf-8") as log_file:
+            log_file.write(log_entry)

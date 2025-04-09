@@ -39,3 +39,22 @@ class PredictiveModelService:
             "patterns": patterns,
             "reason": f"GPT: {gpt_prediction}, DeepSeek: {ds_prediction}, Patterns: {', '.join(patterns) if patterns else 'None'}"
         }
+
+    def analyze_multiframe(self, candles_1h: list[dict], candles_15m: list[dict]) -> dict:
+        result_1h = self.analyze(candles_1h)
+        result_15m = self.analyze(candles_15m)
+
+        if result_1h["decision"] == result_15m["decision"] and result_1h["decision"] != "HOLD":
+            return {
+                "decision": result_1h["decision"],
+                "confidence": max(result_1h["confidence"], result_15m["confidence"]),
+                "patterns": list(set(result_1h["patterns"] + result_15m["patterns"])),
+                "reason": f"Multiframe Agreement | 1H: {result_1h['reason']} | 15M: {result_15m['reason']}"
+            }
+        else:
+            return {
+                "decision": "HOLD",
+                "confidence": 0.5,
+                "patterns": [],
+                "reason": f"Multiframe Conflict | 1H: {result_1h['reason']} | 15M: {result_15m['reason']}"
+            }

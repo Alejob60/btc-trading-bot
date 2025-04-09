@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 from app.domain.market_data import MarketData
-
+import requests
 load_dotenv()
 
 class MarketDataProvider:
@@ -41,3 +41,12 @@ class MarketDataProvider:
         except Exception as e:
             print(f"⚠️ Error al obtener velas recientes: {e}")
             return []
+    def get_current_price(self, symbol: str) -> float:
+        try:
+            url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}"
+            response = requests.get(url)
+            response.raise_for_status()
+            return float(response.json()['price'])
+        except Exception as e:
+            print(f"❌ Error al obtener el precio actual de {symbol}: {e}")
+            return 0.0
